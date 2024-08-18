@@ -1,0 +1,19 @@
+{
+  "environment": {
+    "DLC": "/usr/dlc",
+    "WRKDIR": "/usr/wrk",
+    "JMSPROVIDER": "Qpid" 
+  },
+  
+  "jvmArgs": [
+    "-Djava.net.preferIPv4Stack=true",
+    "-Djava.net.preferIPv6Addresses=false"
+  ],
+
+  "instance": {
+    "brokerName": "activemq",
+    "controlPort": 5000,
+    "logToFile": true,
+    "logDirectory": "/var/log/oemessagingservice"
+  }
+}

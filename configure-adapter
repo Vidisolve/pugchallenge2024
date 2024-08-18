@@ -1,0 +1,91 @@
+#!/bin/bash
+
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit 1
+fi
+
+error () {
+    [[ ${NOCOLOR} ]] && ${SETCOLOR_ERROR}
+    echo -n "ERROR: "
+    [[ ${NOCOLOR} ]] && ${SETCOLOR_NORMAL}
+    echo $@
+}
+
+getQpidClientJars() {
+  wget -O /tmp/apache-qpid-jms-1.11.0-bin.tar.gz \
+       https://dlcdn.apache.org/qpid/jms/1.11.0/apache-qpid-jms-1.11.0-bin.tar.gz
+
+  cd /tmp
+  tar -xf /tmp/apache-qpid-jms-1.11.0-bin.tar.gz
+  cd ${CONFIG}
+
+  rm -rf classes jars
+  mkdir jars
+  touch jars/.gitkeep
+
+  mv /tmp/apache-qpid-jms-1.11.0/lib/* ${CONFIG}/jars/
+  mv /tmp/apache-qpid-jms-1.11.0/licenses ${CONFIG}/jars/
+  mv /tmp/apache-qpid-jms-1.11.0/LICENSE ${CONFIG}/jars/
+  mv /tmp/apache-qpid-jms-1.11.0/NOTICE ${CONFIG}/jars/
+
+  rm -rf /tmp/apache-qpid-jms-1.11.0*
+}
+
+buildConnectionFactory() {
+  local JARLIST=""
+  for F in $(find ${CONFIG}/jars -name *.jar)
+  do
+    JARLIST=${JARLIST}:${F}
+  done
+  JARLIST=${JARLIST:1}
+
+  echo Compiling JmsConnectionFactory
+  cd ${CONFIG}/src
+  javac -d ${CONFIG}/classes -cp ${JARLIST} com/vidisolve/openedge/qpidjms/JmsConnectionFactory.java
+  cd ${CONFIG}/classes 
+  jar -c -f ${CONFIG}/jars/oe-qpid-connection-factory.jar com/vidisolve/openedge/qpidjms/JmsConnectionFactory.class
+}
+
+# MAIN BLOCK
+
+# Locate the installer, service and DLC directories
+CONFIG=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SERVICE=$(dirname ${CONFIG})
+SERVICE=${SERVICE}/oemessagingservice
+DLC=${DLC:-/usr/dlc}
+
+# Validate that the service directory exist
+if [[ ! -d ${SERVICE} ]] 
+then
+  error Unable to locate oemessagingservice. >&2
+  exit 1
+fi
+
+#Validate that the DLC directory exist
+if [ ! -d ${DLC} ]; then
+  error Invalid DLC value. ${DLC} does not exist. >&2
+  exit 1
+fi
+
+# Obtain the jar files
+getQpidClientJars
+buildConnectionFactory
+
+# Create/Update the adapter in ubroker.properties
+${DLC}/bin/mergeprop -action update -type ubroker -delta ${CONFIG}/ubroker.properties.part
+
+# Correct the JmsConnectionFactory in jmsProvider.properties
+sed -i s/org.apache.qpid.jms.JmsConnectionFactory/com.vidisolve.openedge.qpidjms.JmsConnectionFactory/g ${DLC}/properties/jmsProvider.properties
+
+# Install the jar files
+rsync -rW --delete --force ${CONFIG}/jars ${SERVICE}/
+
+# Install the service configuration
+cp ${CONFIG}/adapter.json ${SERVICE}/config
+
+# Install the jmsadapter systemd service
+cp ${CONFIG}/jmsadapter.service /etc/systemd/system
+sed -i s#SERVICEDIR#${SERVICE}#g /etc/systemd/system/jmsadapter.service
+systemctl daemon-reload
+systemctl enable jmsadapter.service

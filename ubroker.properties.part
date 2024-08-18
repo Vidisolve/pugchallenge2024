@@ -1,0 +1,18 @@
+[Adapter.activemq]
+    appserviceNameList=activemq
+    brokerLogFile=$WRKDIR/activemq.broker.log
+    brkrLogThreshold=5242880
+    brkrNumLogFiles=3
+    controllingNameServer=NS1
+    description=Activemq Adapter broker
+    initialAdptrThreads=5
+    jvmArgs=
+    maxAdptrThreads=115
+    maxClientInstance=512
+    minAdptrThreads=5
+    portNumber=3600
+    registerNameServer=0
+    srvrLogFile=$WRKDIR/activemq.server.log
+    srvrLogThreshold=5242880
+    srvrNumLogFiles=3
+    uuid=b160e6f5b4cc403f:-14007ba1:19165d6b369:-8000

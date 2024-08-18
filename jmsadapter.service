@@ -1,0 +1,14 @@
+# /etc/systemd/system/jmsadapter.service
+#
+[Unit]
+Description=OpenEdge JMS Adapter: activemq
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 SERVICEDIR/python/jmsadapter.py
+ExecStop=/usr/bin/python3 SERVICEDIR/python/jmsman.py e
+Type=simple
+
+[Install]
+WantedBy=default.target
+
