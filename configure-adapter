@@ -20,9 +20,7 @@ getQpidClientJars() {
   tar -xf /tmp/apache-qpid-jms-1.11.0-bin.tar.gz
   cd ${CONFIG}
 
-  rm -rf classes jars
-  mkdir jars
-  touch jars/.gitkeep
+  rm -rf classes jars/*
 
   mv /tmp/apache-qpid-jms-1.11.0/lib/* ${CONFIG}/jars/
   mv /tmp/apache-qpid-jms-1.11.0/licenses ${CONFIG}/jars/
